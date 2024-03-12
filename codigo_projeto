@@ -1,0 +1,46 @@
+from google.colab import files
+from keras.models import load_model
+from google.colab.patches import cv2_imshow
+import cv2
+import numpy as np
+
+model = load_model("/content/keras_model.h5")
+
+class_names = open("labels.txt", "r").readlines()
+
+uploaded = files.upload()
+
+for filename in uploaded.keys():
+    
+    image = cv2.imread(filename)
+
+    image_resized = cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA)
+
+    image_resized = np.asarray(image_resized, dtype=np.float32).reshape(1, 224, 224, 3)
+
+    image_resized = (image_resized / 127.5) - 1
+
+    prediction = model.predict(image_resized)
+    index = np.argmax(prediction)
+    class_name = class_names[index]
+    confidence_score = prediction[0][index]
+
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
+
+    _, threshold_image = cv2.threshold(blurred_image, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    contours, _ = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    image_with_contours = image.copy()
+    cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 2)
+
+    image_resized = cv2.resize(image, (image_with_contours.shape[1], image_with_contours.shape[0]))
+
+    concatenated_image = np.concatenate((image_resized, np.ones((image_resized.shape[0], 10, 3), dtype=np.uint8), image_with_contours), axis=1)
+
+    cv2_imshow(concatenated_image)
+
+    print(f"\nClasse : {class_name[2:]}")
+    print(f"Confiança: {round(confidence_score * 100, 2)}%")
