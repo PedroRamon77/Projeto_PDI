@@ -4,7 +4,7 @@ from google.colab.patches import cv2_imshow
 import cv2
 import numpy as np
 
-model = load_model("/content/keras_model.h5")
+model = load_model("/content/modelo_melanoma.h5")
 
 class_names = open("labels.txt", "r").readlines()
 
